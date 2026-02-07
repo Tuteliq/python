@@ -513,9 +513,10 @@ class SafeNest:
         # Extract metadata from headers
         self.last_request_id = response.headers.get("x-request-id")
 
-        limit = response.headers.get("x-usage-limit")
-        used = response.headers.get("x-usage-used")
-        remaining = response.headers.get("x-usage-remaining")
+        # Monthly usage headers
+        limit = response.headers.get("x-monthly-limit")
+        used = response.headers.get("x-monthly-used")
+        remaining = response.headers.get("x-monthly-remaining")
 
         if limit and used and remaining:
             self.usage = Usage(
