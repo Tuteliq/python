@@ -16,6 +16,8 @@ from safenest.errors import (
     ValidationError,
 )
 from safenest.models import (
+    AccountDeletionResult,
+    AccountExportResult,
     ActionPlanResult,
     AnalysisContext,
     AnalyzeEmotionsInput,
@@ -468,6 +470,28 @@ class SafeNest:
 
         data = await self._request("POST", "/api/v1/reports/incident", body)
         return ReportResult.from_dict(data)
+
+    # =========================================================================
+    # Account Management (GDPR)
+    # =========================================================================
+
+    async def delete_account_data(self) -> AccountDeletionResult:
+        """Delete all account data (GDPR Article 17 — Right to Erasure).
+
+        Returns:
+            AccountDeletionResult with deletion confirmation.
+        """
+        data = await self._request("DELETE", "/api/v1/account/data")
+        return AccountDeletionResult.from_dict(data)
+
+    async def export_account_data(self) -> AccountExportResult:
+        """Export all account data as JSON (GDPR Article 20 — Right to Data Portability).
+
+        Returns:
+            AccountExportResult with full data export.
+        """
+        data = await self._request("GET", "/api/v1/account/export")
+        return AccountExportResult.from_dict(data)
 
     # =========================================================================
     # Private Methods

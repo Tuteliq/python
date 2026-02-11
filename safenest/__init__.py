@@ -40,6 +40,9 @@ from safenest.models import (
     ActionPlanResult,
     ReportResult,
     Usage,
+    # Account types (GDPR)
+    AccountDeletionResult,
+    AccountExportResult,
 )
 from safenest.errors import (
     SafeNestError,
@@ -52,7 +55,7 @@ from safenest.errors import (
     NetworkError,
 )
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __all__ = [
     # Client
     "SafeNest",
@@ -84,6 +87,9 @@ __all__ = [
     "ActionPlanResult",
     "ReportResult",
     "Usage",
+    # Account types (GDPR)
+    "AccountDeletionResult",
+    "AccountExportResult",
     # Errors
     "SafeNestError",
     "AuthenticationError",

@@ -411,3 +411,42 @@ class ReportResult:
             external_id=data.get("external_id"),
             metadata=data.get("metadata"),
         )
+
+
+# =============================================================================
+# Account Management (GDPR)
+# =============================================================================
+
+
+@dataclass
+class AccountDeletionResult:
+    """Result from account data deletion (GDPR Article 17)."""
+
+    message: str
+    deleted_count: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AccountDeletionResult":
+        """Create from API response dictionary."""
+        return cls(
+            message=data["message"],
+            deleted_count=data["deleted_count"],
+        )
+
+
+@dataclass
+class AccountExportResult:
+    """Result from account data export (GDPR Article 20)."""
+
+    user_id: str
+    exported_at: str
+    data: dict[str, Any]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AccountExportResult":
+        """Create from API response dictionary."""
+        return cls(
+            user_id=data["userId"],
+            exported_at=data["exportedAt"],
+            data=data["data"],
+        )
