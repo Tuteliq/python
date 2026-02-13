@@ -1,10 +1,10 @@
-"""Custom exceptions for SafeNest SDK."""
+"""Custom exceptions for Tuteliq SDK."""
 
 from typing import Any, Optional
 
 
-class SafeNestError(Exception):
-    """Base exception for SafeNest SDK errors."""
+class TuteliqError(Exception):
+    """Base exception for Tuteliq SDK errors."""
 
     def __init__(self, message: str, details: Optional[Any] = None) -> None:
         super().__init__(message)
@@ -12,31 +12,31 @@ class SafeNestError(Exception):
         self.details = details
 
 
-class AuthenticationError(SafeNestError):
+class AuthenticationError(TuteliqError):
     """Raised when API key is invalid or missing."""
 
     pass
 
 
-class RateLimitError(SafeNestError):
+class RateLimitError(TuteliqError):
     """Raised when rate limit is exceeded."""
 
     pass
 
 
-class ValidationError(SafeNestError):
+class ValidationError(TuteliqError):
     """Raised when request validation fails."""
 
     pass
 
 
-class NotFoundError(SafeNestError):
+class NotFoundError(TuteliqError):
     """Raised when a resource is not found."""
 
     pass
 
 
-class ServerError(SafeNestError):
+class ServerError(TuteliqError):
     """Raised when the server returns a 5xx error."""
 
     def __init__(
@@ -46,13 +46,13 @@ class ServerError(SafeNestError):
         self.status_code = status_code
 
 
-class TimeoutError(SafeNestError):
+class TimeoutError(TuteliqError):
     """Raised when a request times out."""
 
     pass
 
 
-class NetworkError(SafeNestError):
+class NetworkError(TuteliqError):
     """Raised when a network error occurs."""
 
     pass

@@ -1,21 +1,21 @@
-"""SafeNest API client."""
+"""Tuteliq API client."""
 
 import asyncio
 from typing import Any, Optional, Union
 
 import httpx
 
-from safenest.errors import (
+from tuteliq.errors import (
     AuthenticationError,
     NetworkError,
     NotFoundError,
     RateLimitError,
-    SafeNestError,
+    TuteliqError,
     ServerError,
     TimeoutError,
     ValidationError,
 )
-from safenest.models import (
+from tuteliq.models import (
     AccountDeletionResult,
     AccountExportResult,
     ActionPlanResult,
@@ -23,8 +23,18 @@ from safenest.models import (
     AnalyzeEmotionsInput,
     AnalyzeInput,
     AnalyzeResult,
+    AuditAction,
+    AuditLogsResult,
     Audience,
+    BreachNotificationStatus,
+    BreachResult,
+    BreachListResult,
+    BreachSeverity,
+    BreachStatus,
     BullyingResult,
+    ConsentActionResult,
+    ConsentStatusResult,
+    ConsentType,
     DetectBullyingInput,
     DetectGroomingInput,
     DetectUnsafeInput,
@@ -33,18 +43,24 @@ from safenest.models import (
     GenerateReportInput,
     GetActionPlanInput,
     GroomingResult,
+    LogBreachInput,
+    LogBreachResult,
+    RecordConsentInput,
+    RectifyDataInput,
+    RectifyDataResult,
     RiskLevel,
     UnsafeResult,
+    UpdateBreachInput,
     ReportResult,
     Usage,
 )
 
 
-class SafeNest:
-    """SafeNest API client for child safety analysis.
+class Tuteliq:
+    """Tuteliq API client for child safety analysis.
 
     Example:
-        >>> client = SafeNest(api_key="your-api-key")
+        >>> client = Tuteliq(api_key="your-api-key")
         >>> result = await client.detect_bullying("Some text to analyze")
         >>> if result.is_bullying:
         ...     print(f"Severity: {result.severity}")
@@ -55,7 +71,7 @@ class SafeNest:
         last_latency_ms: Latency of the last request in milliseconds.
     """
 
-    BASE_URL = "https://api.safenest.dev"
+    BASE_URL = "https://api.tuteliq.ai"
 
     def __init__(
         self,
@@ -65,10 +81,10 @@ class SafeNest:
         max_retries: int = 3,
         retry_delay: float = 1.0,
     ) -> None:
-        """Initialize SafeNest client.
+        """Initialize Tuteliq client.
 
         Args:
-            api_key: Your SafeNest API key.
+            api_key: Your Tuteliq API key.
             timeout: Request timeout in seconds (default: 30).
             max_retries: Number of retry attempts for transient failures (default: 3).
             retry_delay: Initial retry delay in seconds (default: 1).
@@ -97,7 +113,7 @@ class SafeNest:
         self.last_request_id: Optional[str] = None
         self.last_latency_ms: Optional[float] = None
 
-    async def __aenter__(self) -> "SafeNest":
+    async def __aenter__(self) -> "Tuteliq":
         """Async context manager entry."""
         return self
 
@@ -493,6 +509,173 @@ class SafeNest:
         data = await self._request("GET", "/api/v1/account/export")
         return AccountExportResult.from_dict(data)
 
+    async def record_consent(self, input: RecordConsentInput) -> ConsentActionResult:
+        """Record user consent (GDPR Article 7).
+
+        Args:
+            input: Consent type and policy version.
+
+        Returns:
+            ConsentActionResult with the created consent record.
+        """
+        data = await self._request("POST", "/api/v1/account/consent", {
+            "consent_type": input.consent_type.value if isinstance(input.consent_type, ConsentType) else input.consent_type,
+            "version": input.version,
+        })
+        return ConsentActionResult.from_dict(data)
+
+    async def get_consent_status(self, consent_type: Optional[ConsentType] = None) -> ConsentStatusResult:
+        """Get current consent status (GDPR Article 7).
+
+        Args:
+            consent_type: Optional filter by consent type.
+
+        Returns:
+            ConsentStatusResult with list of consent records.
+        """
+        path = "/api/v1/account/consent"
+        if consent_type:
+            type_val = consent_type.value if isinstance(consent_type, ConsentType) else consent_type
+            path += f"?type={type_val}"
+        data = await self._request("GET", path)
+        return ConsentStatusResult.from_dict(data)
+
+    async def withdraw_consent(self, consent_type: ConsentType) -> ConsentActionResult:
+        """Withdraw consent (GDPR Article 7.3).
+
+        Args:
+            consent_type: Type of consent to withdraw.
+
+        Returns:
+            ConsentActionResult with the withdrawal record.
+        """
+        type_val = consent_type.value if isinstance(consent_type, ConsentType) else consent_type
+        data = await self._request("DELETE", f"/api/v1/account/consent/{type_val}")
+        return ConsentActionResult.from_dict(data)
+
+    async def rectify_data(self, input: RectifyDataInput) -> RectifyDataResult:
+        """Rectify user data (GDPR Article 16 -- Right to Rectification).
+
+        Args:
+            input: Collection, document ID, and fields to update.
+
+        Returns:
+            RectifyDataResult with list of updated fields.
+        """
+        data = await self._request("PATCH", "/api/v1/account/data", {
+            "collection": input.collection,
+            "document_id": input.document_id,
+            "fields": input.fields,
+        })
+        return RectifyDataResult.from_dict(data)
+
+    async def get_audit_logs(
+        self,
+        action: Optional[AuditAction] = None,
+        limit: Optional[int] = None,
+    ) -> AuditLogsResult:
+        """Get audit logs (GDPR Article 15 -- Right of Access).
+
+        Args:
+            action: Optional filter by action type.
+            limit: Maximum number of results.
+
+        Returns:
+            AuditLogsResult with list of audit log entries.
+        """
+        params = []
+        if action:
+            action_val = action.value if isinstance(action, AuditAction) else action
+            params.append(f"action={action_val}")
+        if limit:
+            params.append(f"limit={limit}")
+        query = f"?{'&'.join(params)}" if params else ""
+        data = await self._request("GET", f"/api/v1/account/audit-logs{query}")
+        return AuditLogsResult.from_dict(data)
+
+    # =========================================================================
+    # Breach Management (GDPR Article 33/34)
+    # =========================================================================
+
+    async def log_breach(self, input: LogBreachInput) -> LogBreachResult:
+        """Log a new data breach.
+
+        Args:
+            input: Breach details including title, severity, affected users.
+
+        Returns:
+            LogBreachResult with the created breach record.
+        """
+        data = await self._request("POST", "/api/v1/admin/breach", {
+            "title": input.title,
+            "description": input.description,
+            "severity": input.severity.value if isinstance(input.severity, BreachSeverity) else input.severity,
+            "affected_user_ids": input.affected_user_ids,
+            "data_categories": input.data_categories,
+            "reported_by": input.reported_by,
+        })
+        return LogBreachResult.from_dict(data)
+
+    async def list_breaches(
+        self,
+        status: Optional[BreachStatus] = None,
+        limit: Optional[int] = None,
+    ) -> BreachListResult:
+        """List data breaches.
+
+        Args:
+            status: Optional filter by breach status.
+            limit: Maximum number of results.
+
+        Returns:
+            BreachListResult with list of breach records.
+        """
+        params = []
+        if status:
+            status_val = status.value if isinstance(status, BreachStatus) else status
+            params.append(f"status={status_val}")
+        if limit:
+            params.append(f"limit={limit}")
+        query = f"?{'&'.join(params)}" if params else ""
+        data = await self._request("GET", f"/api/v1/admin/breach{query}")
+        return BreachListResult.from_dict(data)
+
+    async def get_breach(self, breach_id: str) -> BreachResult:
+        """Get a single breach by ID.
+
+        Args:
+            breach_id: The breach ID.
+
+        Returns:
+            BreachResult with the breach record.
+        """
+        data = await self._request("GET", f"/api/v1/admin/breach/{breach_id}")
+        return BreachResult.from_dict(data)
+
+    async def update_breach_status(
+        self,
+        breach_id: str,
+        input: UpdateBreachInput,
+    ) -> BreachResult:
+        """Update a breach's status.
+
+        Args:
+            breach_id: The breach ID.
+            input: Status update details.
+
+        Returns:
+            BreachResult with the updated breach record.
+        """
+        body: dict[str, Any] = {
+            "status": input.status.value if isinstance(input.status, BreachStatus) else input.status,
+        }
+        if input.notification_status:
+            body["notification_status"] = input.notification_status.value if isinstance(input.notification_status, BreachNotificationStatus) else input.notification_status
+        if input.notes:
+            body["notes"] = input.notes
+        data = await self._request("PATCH", f"/api/v1/admin/breach/{breach_id}", body)
+        return BreachResult.from_dict(data)
+
     # =========================================================================
     # Private Methods
     # =========================================================================
@@ -518,7 +701,7 @@ class SafeNest:
                     delay = self._retry_delay * (2 ** attempt)
                     await asyncio.sleep(delay)
 
-        raise last_error or SafeNestError("Request failed after retries")
+        raise last_error or TuteliqError("Request failed after retries")
 
     async def _perform_request(
         self,
@@ -578,4 +761,4 @@ class SafeNest:
         elif status >= 500:
             raise ServerError(message, status, details)
         else:
-            raise SafeNestError(message, details)
+            raise TuteliqError(message, details)

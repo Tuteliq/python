@@ -3,17 +3,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "safenest"
-version = "1.1.0"
-description = "Official Python SDK for SafeNest - AI-powered child safety API"
+name = "tuteliq"
+version = "1.2.0"
+description = "Official Python SDK for Tuteliq - AI-powered child safety API"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 authors = [
-    { name = "SafeNest", email = "sales@safenest.dev" }
+    { name = "Tuteliq", email = "sales@tuteliq.ai" }
 ]
 keywords = [
-    "safenest",
+    "tuteliq",
     "child-safety",
     "content-moderation",
     "bullying-detection",
@@ -50,13 +50,13 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://safenest.dev"
-Documentation = "https://api.safenest.dev/docs"
-Repository = "https://github.com/SafeNestSDK/python"
-Issues = "https://github.com/SafeNestSDK/python/issues"
+Homepage = "https://tuteliq.ai"
+Documentation = "https://api.tuteliq.ai/docs"
+Repository = "https://github.com/Tuteliq/python"
+Issues = "https://github.com/Tuteliq/python/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["safenest"]
+packages = ["tuteliq"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

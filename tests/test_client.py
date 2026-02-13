@@ -1,8 +1,8 @@
-"""Tests for SafeNest client."""
+"""Tests for Tuteliq client."""
 
 import pytest
-from safenest import (
-    SafeNest,
+from tuteliq import (
+    Tuteliq,
     Severity,
     GroomingRisk,
     RiskLevel,
@@ -21,12 +21,12 @@ class TestClientInitialization:
 
     def test_client_creation(self) -> None:
         """Test basic client creation."""
-        client = SafeNest(api_key="test-api-key-12345")
+        client = Tuteliq(api_key="test-api-key-12345")
         assert client is not None
 
     def test_client_with_options(self) -> None:
         """Test client creation with options."""
-        client = SafeNest(
+        client = Tuteliq(
             api_key="test-api-key-12345",
             timeout=60.0,
             max_retries=5,
@@ -37,12 +37,12 @@ class TestClientInitialization:
     def test_client_requires_api_key(self) -> None:
         """Test that client requires API key."""
         with pytest.raises(ValueError, match="API key is required"):
-            SafeNest(api_key="")
+            Tuteliq(api_key="")
 
     def test_client_validates_api_key_length(self) -> None:
         """Test that client validates API key length."""
         with pytest.raises(ValueError, match="appears to be invalid"):
-            SafeNest(api_key="short")
+            Tuteliq(api_key="short")
 
 
 class TestEnums:

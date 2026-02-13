@@ -1,4 +1,4 @@
-"""Data models for SafeNest SDK."""
+"""Data models for Tuteliq SDK."""
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -449,4 +449,305 @@ class AccountExportResult:
             user_id=data["userId"],
             exported_at=data["exportedAt"],
             data=data["data"],
+        )
+
+
+# =============================================================================
+# Consent Management (GDPR Article 7)
+# =============================================================================
+
+
+class ConsentType(str, Enum):
+    """Types of consent that can be recorded."""
+
+    DATA_PROCESSING = "data_processing"
+    ANALYTICS = "analytics"
+    MARKETING = "marketing"
+    THIRD_PARTY_SHARING = "third_party_sharing"
+    CHILD_SAFETY_MONITORING = "child_safety_monitoring"
+
+
+class ConsentStatus(str, Enum):
+    """Consent status."""
+
+    GRANTED = "granted"
+    WITHDRAWN = "withdrawn"
+
+
+@dataclass
+class RecordConsentInput:
+    """Input for recording consent."""
+
+    consent_type: ConsentType
+    version: str
+
+
+@dataclass
+class ConsentRecord:
+    """A consent record."""
+
+    id: str
+    user_id: str
+    consent_type: ConsentType
+    status: ConsentStatus
+    version: str
+    created_at: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ConsentRecord":
+        """Create from API response dictionary."""
+        return cls(
+            id=data["id"],
+            user_id=data["user_id"],
+            consent_type=ConsentType(data["consent_type"]),
+            status=ConsentStatus(data["status"]),
+            version=data["version"],
+            created_at=data["created_at"],
+        )
+
+
+@dataclass
+class ConsentActionResult:
+    """Result from consent record/withdraw operations."""
+
+    message: str
+    consent: ConsentRecord
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ConsentActionResult":
+        """Create from API response dictionary."""
+        return cls(
+            message=data["message"],
+            consent=ConsentRecord.from_dict(data["consent"]),
+        )
+
+
+@dataclass
+class ConsentStatusResult:
+    """Result from consent status query."""
+
+    consents: list[ConsentRecord]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ConsentStatusResult":
+        """Create from API response dictionary."""
+        return cls(
+            consents=[ConsentRecord.from_dict(c) for c in data["consents"]],
+        )
+
+
+# =============================================================================
+# Right to Rectification (GDPR Article 16)
+# =============================================================================
+
+
+@dataclass
+class RectifyDataInput:
+    """Input for data rectification."""
+
+    collection: str
+    document_id: str
+    fields: dict[str, Any]
+
+
+@dataclass
+class RectifyDataResult:
+    """Result from data rectification."""
+
+    message: str
+    updated_fields: list[str]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "RectifyDataResult":
+        """Create from API response dictionary."""
+        return cls(
+            message=data["message"],
+            updated_fields=data["updated_fields"],
+        )
+
+
+# =============================================================================
+# Audit Logs (GDPR Article 15)
+# =============================================================================
+
+
+class AuditAction(str, Enum):
+    """Types of auditable actions."""
+
+    DATA_ACCESS = "data_access"
+    DATA_EXPORT = "data_export"
+    DATA_DELETION = "data_deletion"
+    DATA_RECTIFICATION = "data_rectification"
+    CONSENT_GRANTED = "consent_granted"
+    CONSENT_WITHDRAWN = "consent_withdrawn"
+    BREACH_NOTIFICATION = "breach_notification"
+
+
+@dataclass
+class AuditLogEntry:
+    """An audit log entry."""
+
+    id: str
+    user_id: str
+    action: AuditAction
+    created_at: str
+    details: Optional[dict[str, Any]] = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AuditLogEntry":
+        """Create from API response dictionary."""
+        return cls(
+            id=data["id"],
+            user_id=data["user_id"],
+            action=AuditAction(data["action"]),
+            created_at=data["created_at"],
+            details=data.get("details"),
+        )
+
+
+@dataclass
+class AuditLogsResult:
+    """Result from audit logs query."""
+
+    audit_logs: list[AuditLogEntry]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AuditLogsResult":
+        """Create from API response dictionary."""
+        return cls(
+            audit_logs=[AuditLogEntry.from_dict(l) for l in data["audit_logs"]],
+        )
+
+
+# =============================================================================
+# Breach Management (GDPR Article 33/34)
+# =============================================================================
+
+
+class BreachSeverity(str, Enum):
+    """Breach severity levels."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class BreachStatus(str, Enum):
+    """Breach status values."""
+
+    DETECTED = "detected"
+    INVESTIGATING = "investigating"
+    CONTAINED = "contained"
+    REPORTED = "reported"
+    RESOLVED = "resolved"
+
+
+class BreachNotificationStatus(str, Enum):
+    """Breach notification status values."""
+
+    PENDING = "pending"
+    USERS_NOTIFIED = "users_notified"
+    DPA_NOTIFIED = "dpa_notified"
+    COMPLETED = "completed"
+
+
+@dataclass
+class LogBreachInput:
+    """Input for logging a data breach."""
+
+    title: str
+    description: str
+    severity: BreachSeverity
+    affected_user_ids: list[str]
+    data_categories: list[str]
+    reported_by: str
+
+
+@dataclass
+class UpdateBreachInput:
+    """Input for updating a breach."""
+
+    status: BreachStatus
+    notification_status: Optional[BreachNotificationStatus] = None
+    notes: Optional[str] = None
+
+
+@dataclass
+class BreachRecord:
+    """A breach record."""
+
+    id: str
+    title: str
+    description: str
+    severity: BreachSeverity
+    status: BreachStatus
+    notification_status: BreachNotificationStatus
+    affected_user_ids: list[str]
+    data_categories: list[str]
+    reported_by: str
+    notification_deadline: str
+    created_at: str
+    updated_at: str
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "BreachRecord":
+        """Create from API response dictionary."""
+        return cls(
+            id=data["id"],
+            title=data["title"],
+            description=data["description"],
+            severity=BreachSeverity(data["severity"]),
+            status=BreachStatus(data["status"]),
+            notification_status=BreachNotificationStatus(data["notification_status"]),
+            affected_user_ids=data["affected_user_ids"],
+            data_categories=data["data_categories"],
+            reported_by=data["reported_by"],
+            notification_deadline=data["notification_deadline"],
+            created_at=data["created_at"],
+            updated_at=data["updated_at"],
+        )
+
+
+@dataclass
+class LogBreachResult:
+    """Result from logging a breach."""
+
+    message: str
+    breach: BreachRecord
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "LogBreachResult":
+        """Create from API response dictionary."""
+        return cls(
+            message=data["message"],
+            breach=BreachRecord.from_dict(data["breach"]),
+        )
+
+
+@dataclass
+class BreachListResult:
+    """Result from listing breaches."""
+
+    breaches: list[BreachRecord]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "BreachListResult":
+        """Create from API response dictionary."""
+        return cls(
+            breaches=[BreachRecord.from_dict(b) for b in data["breaches"]],
+        )
+
+
+@dataclass
+class BreachResult:
+    """Result from getting/updating a breach."""
+
+    breach: BreachRecord
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "BreachResult":
+        """Create from API response dictionary."""
+        return cls(
+            breach=BreachRecord.from_dict(data["breach"]),
         )

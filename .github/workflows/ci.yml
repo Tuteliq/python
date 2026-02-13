@@ -28,10 +28,10 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run type checker
-        run: mypy safenest
+        run: mypy tuteliq
 
       - name: Run linter
-        run: ruff check safenest tests
+        run: ruff check tuteliq tests
 
       - name: Run tests
         run: pytest tests/ -v

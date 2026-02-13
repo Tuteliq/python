@@ -1,24 +1,24 @@
 <p align="center">
-  <img src="./assets/logo.png" alt="SafeNest" width="200" />
+  <img src="./assets/logo.png" alt="Tuteliq" width="200" />
 </p>
 
-<h1 align="center">SafeNest Python SDK</h1>
+<h1 align="center">Tuteliq Python SDK</h1>
 
 <p align="center">
-  <strong>Official Python SDK for the SafeNest API</strong><br>
+  <strong>Official Python SDK for the Tuteliq API</strong><br>
   AI-powered child safety analysis
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/safenest/"><img src="https://img.shields.io/pypi/v/safenest.svg" alt="PyPI version"></a>
-  <a href="https://pypi.org/project/safenest/"><img src="https://img.shields.io/pypi/pyversions/safenest.svg" alt="Python versions"></a>
-  <a href="https://github.com/SafeNestSDK/python/actions"><img src="https://img.shields.io/github/actions/workflow/status/SafeNestSDK/python/ci.yml" alt="build status"></a>
-  <a href="https://github.com/SafeNestSDK/python/blob/main/LICENSE"><img src="https://img.shields.io/github/license/SafeNestSDK/python.svg" alt="license"></a>
+  <a href="https://pypi.org/project/tuteliq/"><img src="https://img.shields.io/pypi/v/tuteliq.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/tuteliq/"><img src="https://img.shields.io/pypi/pyversions/tuteliq.svg" alt="Python versions"></a>
+  <a href="https://github.com/Tuteliq/python/actions"><img src="https://img.shields.io/github/actions/workflow/status/Tuteliq/python/ci.yml" alt="build status"></a>
+  <a href="https://github.com/Tuteliq/python/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Tuteliq/python.svg" alt="license"></a>
 </p>
 
 <p align="center">
-  <a href="https://api.safenest.dev/docs">API Docs</a> •
-  <a href="https://safenest.app">Dashboard</a> •
+  <a href="https://api.tuteliq.ai/docs">API Docs</a> •
+  <a href="https://tuteliq.app">Dashboard</a> •
   <a href="https://discord.gg/7kbTeRYRXD">Discord</a>
 </p>
 
@@ -27,7 +27,7 @@
 ## Installation
 
 ```bash
-pip install safenest
+pip install tuteliq
 ```
 
 ### Requirements
@@ -40,10 +40,10 @@ pip install safenest
 
 ```python
 import asyncio
-from safenest import SafeNest
+from tuteliq import Tuteliq
 
 async def main():
-    client = SafeNest(api_key="your-api-key")
+    client = Tuteliq(api_key="your-api-key")
 
     # Quick safety analysis
     result = await client.analyze("Message to check")
@@ -60,7 +60,7 @@ asyncio.run(main())
 Or use as a context manager:
 
 ```python
-async with SafeNest(api_key="your-api-key") as client:
+async with Tuteliq(api_key="your-api-key") as client:
     result = await client.analyze("Message to check")
 ```
 
@@ -71,13 +71,13 @@ async with SafeNest(api_key="your-api-key") as client:
 ### Initialization
 
 ```python
-from safenest import SafeNest
+from tuteliq import Tuteliq
 
 # Simple
-client = SafeNest(api_key="your-api-key")
+client = Tuteliq(api_key="your-api-key")
 
 # With options
-client = SafeNest(
+client = Tuteliq(
     api_key="your-api-key",
     timeout=30.0,      # Request timeout in seconds
     max_retries=3,     # Retry attempts
@@ -100,7 +100,7 @@ if result.is_bullying:
 ### Grooming Detection
 
 ```python
-from safenest import DetectGroomingInput, GroomingMessage, MessageRole
+from tuteliq import DetectGroomingInput, GroomingMessage, MessageRole
 
 result = await client.detect_grooming(
     DetectGroomingInput(
@@ -152,7 +152,7 @@ print(f"Followup: {result.recommended_followup}")
 ### Action Plan
 
 ```python
-from safenest import GetActionPlanInput, Audience, Severity
+from tuteliq import GetActionPlanInput, Audience, Severity
 
 plan = await client.get_action_plan(
     GetActionPlanInput(
@@ -170,7 +170,7 @@ print(f"Tone: {plan.tone}")
 ### Incident Report
 
 ```python
-from safenest import GenerateReportInput, ReportMessage
+from tuteliq import GenerateReportInput, ReportMessage
 
 report = await client.generate_report(
     GenerateReportInput(
@@ -227,9 +227,9 @@ print(f"Request ID: {client.last_request_id}")
 ## Error Handling
 
 ```python
-from safenest import (
-    SafeNest,
-    SafeNestError,
+from tuteliq import (
+    Tuteliq,
+    TuteliqError,
     AuthenticationError,
     RateLimitError,
     ValidationError,
@@ -253,7 +253,7 @@ except TimeoutError as e:
     print(f"Timeout: {e.message}")
 except NetworkError as e:
     print(f"Network error: {e.message}")
-except SafeNestError as e:
+except TuteliqError as e:
     print(f"Error: {e.message}")
 ```
 
@@ -264,7 +264,7 @@ except SafeNestError as e:
 The SDK is fully typed. All models are dataclasses with type hints:
 
 ```python
-from safenest import (
+from tuteliq import (
     # Enums
     Severity,
     GroomingRisk,
@@ -303,10 +303,10 @@ from safenest import (
 
 ```python
 from fastapi import FastAPI, HTTPException
-from safenest import SafeNest, RateLimitError
+from tuteliq import Tuteliq, RateLimitError
 
 app = FastAPI()
-client = SafeNest(api_key="your-api-key")
+client = Tuteliq(api_key="your-api-key")
 
 @app.post("/check-message")
 async def check_message(message: str):
@@ -347,16 +347,16 @@ The **grooming** method already accepts a `messages` list and analyzes the full 
 
 ### PII Redaction
 
-Enable `PII_REDACTION_ENABLED=true` on your SafeNest API to automatically strip emails, phone numbers, URLs, social handles, IPs, and other PII from detection summaries and webhook payloads. The original text is still analyzed in full — only stored outputs are scrubbed.
+Enable `PII_REDACTION_ENABLED=true` on your Tuteliq API to automatically strip emails, phone numbers, URLs, social handles, IPs, and other PII from detection summaries and webhook payloads. The original text is still analyzed in full — only stored outputs are scrubbed.
 
 ---
 
 ## Support
 
-- **API Docs**: [api.safenest.dev/docs](https://api.safenest.dev/docs)
+- **API Docs**: [api.tuteliq.ai/docs](https://api.tuteliq.ai/docs)
 - **Discord**: [discord.gg/7kbTeRYRXD](https://discord.gg/7kbTeRYRXD)
-- **Email**: support@safenest.dev
-- **Issues**: [GitHub Issues](https://github.com/SafeNestSDK/python/issues)
+- **Email**: support@tuteliq.ai
+- **Issues**: [GitHub Issues](https://github.com/Tuteliq/python/issues)
 
 ---
 
@@ -366,6 +366,31 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
+## The Mission: Why This Matters
+
+Before you decide to contribute or sponsor, read these numbers. They are not projections. They are not estimates from a pitch deck. They are verified statistics from the University of Edinburgh, UNICEF, NCMEC, and Interpol.
+
+- **302 million** children are victims of online sexual exploitation and abuse every year. That is **10 children every second**. *(Childlight / University of Edinburgh, 2024)*
+- **1 in 8** children globally have been victims of non-consensual sexual imagery in the past year. *(Childlight, 2024)*
+- **370 million** girls and women alive today experienced rape or sexual assault in childhood. An estimated **240–310 million** boys and men experienced the same. *(UNICEF, 2024)*
+- **29.2 million** incidents of suspected child sexual exploitation were reported to NCMEC's CyberTipline in 2024 alone — containing **62.9 million files** (images, videos). *(NCMEC, 2025)*
+- **546,000** reports of online enticement (adults grooming children) in 2024 — a **192% increase** from the year before. *(NCMEC, 2025)*
+- **1,325% increase** in AI-generated child sexual abuse material reports between 2023 and 2024. The technology that should protect children is being weaponized against them. *(NCMEC, 2025)*
+- **100 sextortion reports per day** to NCMEC. Since 2021, at least **36 teenage boys** have taken their own lives because they were victimized by sextortion. *(NCMEC, 2025)*
+- **84%** of reports resolve outside the United States. This is not an American problem. This is a **global emergency**. *(NCMEC, 2025)*
+
+End-to-end encryption is making platforms blind. In 2024, platforms reported **7 million fewer incidents** than the year before — not because abuse stopped, but because they can no longer see it. The tools that catch known images are failing. The systems that rely on human moderators are overwhelmed. The technology to detect behavior — grooming patterns, escalation, manipulation — in real-time text conversations **exists right now**. It is running at [api.tuteliq.ai](https://api.tuteliq.ai).
+
+The question is not whether this technology is possible. The question is whether we build the company to put it everywhere it needs to be.
+
+**Every second we wait, another child is harmed.**
+
+We have the technology. We need the support.
+
+If this mission matters to you, consider [sponsoring our open-source work](https://github.com/sponsors/Tuteliq) so we can keep building the tools that protect children — and keep them free and accessible for everyone.
+
+---
+
 <p align="center">
-  <sub>Built with care for child safety by the <a href="https://safenest.dev">SafeNest</a> team</sub>
+  <sub>Built with care for child safety by the <a href="https://tuteliq.ai">Tuteliq</a> team</sub>
 </p>

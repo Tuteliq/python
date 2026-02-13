@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug in the SafeNest Python SDK
+about: Report a bug in the Tuteliq Python SDK
 title: "[Bug] "
 labels: bug
 assignees: ""

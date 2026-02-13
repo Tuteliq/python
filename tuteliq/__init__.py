@@ -1,17 +1,17 @@
 """
-SafeNest - AI-powered child safety API
+Tuteliq - AI-powered child safety API
 
 Official Python SDK for detecting bullying, grooming, and unsafe content.
 
 Example:
-    >>> from safenest import SafeNest
-    >>> client = SafeNest(api_key="your-api-key")
+    >>> from tuteliq import Tuteliq
+    >>> client = Tuteliq(api_key="your-api-key")
     >>> result = await client.detect_bullying("Some text to analyze")
     >>> print(result.is_bullying)
 """
 
-from safenest.client import SafeNest
-from safenest.models import (
+from tuteliq.client import Tuteliq
+from tuteliq.models import (
     # Enums
     Severity,
     GroomingRisk,
@@ -19,6 +19,9 @@ from safenest.models import (
     EmotionTrend,
     Audience,
     MessageRole,
+    ConsentType,
+    ConsentStatus,
+    AuditAction,
     # Input types
     AnalysisContext,
     DetectBullyingInput,
@@ -31,6 +34,8 @@ from safenest.models import (
     GroomingMessage,
     EmotionMessage,
     ReportMessage,
+    RecordConsentInput,
+    RectifyDataInput,
     # Result types
     BullyingResult,
     GroomingResult,
@@ -43,9 +48,15 @@ from safenest.models import (
     # Account types (GDPR)
     AccountDeletionResult,
     AccountExportResult,
+    ConsentRecord,
+    ConsentActionResult,
+    ConsentStatusResult,
+    RectifyDataResult,
+    AuditLogEntry,
+    AuditLogsResult,
 )
-from safenest.errors import (
-    SafeNestError,
+from tuteliq.errors import (
+    TuteliqError,
     AuthenticationError,
     RateLimitError,
     ValidationError,
@@ -58,7 +69,7 @@ from safenest.errors import (
 __version__ = "1.1.0"
 __all__ = [
     # Client
-    "SafeNest",
+    "Tuteliq",
     # Enums
     "Severity",
     "GroomingRisk",
@@ -66,6 +77,9 @@ __all__ = [
     "EmotionTrend",
     "Audience",
     "MessageRole",
+    "ConsentType",
+    "ConsentStatus",
+    "AuditAction",
     # Input types
     "AnalysisContext",
     "DetectBullyingInput",
@@ -78,6 +92,8 @@ __all__ = [
     "GroomingMessage",
     "EmotionMessage",
     "ReportMessage",
+    "RecordConsentInput",
+    "RectifyDataInput",
     # Result types
     "BullyingResult",
     "GroomingResult",
@@ -90,8 +106,14 @@ __all__ = [
     # Account types (GDPR)
     "AccountDeletionResult",
     "AccountExportResult",
+    "ConsentRecord",
+    "ConsentActionResult",
+    "ConsentStatusResult",
+    "RectifyDataResult",
+    "AuditLogEntry",
+    "AuditLogsResult",
     # Errors
-    "SafeNestError",
+    "TuteliqError",
     "AuthenticationError",
     "RateLimitError",
     "ValidationError",
