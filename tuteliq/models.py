@@ -1445,6 +1445,183 @@ class VideoAnalysisResult:
 
 
 # =============================================================================
+# Document Analysis
+# =============================================================================
+
+
+DOCUMENT_ENDPOINT_NAMES = [
+    "unsafe",
+    "bullying",
+    "grooming",
+    "social-engineering",
+    "coercive-control",
+    "radicalisation",
+    "romance-scam",
+    "mule-recruitment",
+]
+"""Valid endpoint names for document analysis."""
+
+
+@dataclass
+class DocumentExtractionSummary:
+    """Breakdown of text extraction results across document pages."""
+
+    text_layer_pages: int
+    ocr_pages: int
+    failed_pages: int
+    average_ocr_confidence: float
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "DocumentExtractionSummary":
+        """Create from API response dictionary."""
+        return cls(
+            text_layer_pages=data.get("text_layer_pages", 0),
+            ocr_pages=data.get("ocr_pages", 0),
+            failed_pages=data.get("failed_pages", 0),
+            average_ocr_confidence=data.get("average_ocr_confidence", 0.0),
+        )
+
+
+@dataclass
+class DocumentPageEndpointResult:
+    """Detection result for a single endpoint on a single page."""
+
+    endpoint: str
+    detected: bool
+    severity: float
+    confidence: float
+    risk_score: float
+    level: str
+    categories: list[dict[str, Any]]
+    evidence: list[dict[str, Any]]
+    recommended_action: str
+    rationale: str
+    detected_language: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "DocumentPageEndpointResult":
+        """Create from API response dictionary."""
+        return cls(
+            endpoint=data.get("endpoint", ""),
+            detected=data.get("detected", False),
+            severity=data.get("severity", 0.0),
+            confidence=data.get("confidence", 0.0),
+            risk_score=data.get("risk_score", 0.0),
+            level=data.get("level", "none"),
+            categories=data.get("categories", []),
+            evidence=data.get("evidence", []),
+            recommended_action=data.get("recommended_action", ""),
+            rationale=data.get("rationale", ""),
+            detected_language=data.get("detected_language"),
+        )
+
+
+@dataclass
+class DocumentPageResult:
+    """Detection results for a single document page."""
+
+    page_number: int
+    text_preview: str
+    extraction_method: str
+    results: list[DocumentPageEndpointResult]
+    page_risk_score: float
+    page_severity: str
+    ocr_confidence: Optional[float] = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "DocumentPageResult":
+        """Create from API response dictionary."""
+        return cls(
+            page_number=data.get("page_number", 0),
+            text_preview=data.get("text_preview", ""),
+            extraction_method=data.get("extraction_method", "text_layer"),
+            results=[
+                DocumentPageEndpointResult.from_dict(r)
+                for r in data.get("results", [])
+            ],
+            page_risk_score=data.get("page_risk_score", 0.0),
+            page_severity=data.get("page_severity", "none"),
+            ocr_confidence=data.get("ocr_confidence"),
+        )
+
+
+@dataclass
+class DocumentFlaggedPage:
+    """A page that was flagged with risk score >= 0.3."""
+
+    page_number: int
+    risk_score: float
+    severity: str
+    detected_endpoints: list[str]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "DocumentFlaggedPage":
+        """Create from API response dictionary."""
+        return cls(
+            page_number=data.get("page_number", 0),
+            risk_score=data.get("risk_score", 0.0),
+            severity=data.get("severity", "none"),
+            detected_endpoints=data.get("detected_endpoints", []),
+        )
+
+
+@dataclass
+class DocumentAnalysisResult:
+    """Result from document analysis."""
+
+    document_hash: str
+    total_pages: int
+    pages_analyzed: int
+    extraction_summary: DocumentExtractionSummary
+    page_results: list[DocumentPageResult]
+    overall_risk_score: float
+    overall_severity: str
+    detected_endpoints: list[str]
+    flagged_pages: list[DocumentFlaggedPage]
+    credits_used: int
+    processing_time_ms: int
+    file_id: Optional[str] = None
+    language: Optional[str] = None
+    language_status: Optional[str] = None
+    support: Optional[dict[str, Any]] = None
+    external_id: Optional[str] = None
+    customer_id: Optional[str] = None
+    metadata: Optional[dict[str, Any]] = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "DocumentAnalysisResult":
+        """Create from API response dictionary."""
+        return cls(
+            document_hash=data.get("document_hash", ""),
+            total_pages=data.get("total_pages", 0),
+            pages_analyzed=data.get("pages_analyzed", 0),
+            extraction_summary=DocumentExtractionSummary.from_dict(
+                data.get("extraction_summary", {})
+            ),
+            page_results=[
+                DocumentPageResult.from_dict(p)
+                for p in data.get("page_results", [])
+            ],
+            overall_risk_score=data.get("overall_risk_score", 0.0),
+            overall_severity=data.get("overall_severity", "none"),
+            detected_endpoints=data.get("detected_endpoints", []),
+            flagged_pages=[
+                DocumentFlaggedPage.from_dict(f)
+                for f in data.get("flagged_pages", [])
+            ],
+            credits_used=data.get("credits_used", 0),
+            processing_time_ms=data.get("processing_time_ms", 0),
+            file_id=data.get("file_id"),
+            language=data.get("language"),
+            language_status=data.get("language_status"),
+            support=data.get("support"),
+            external_id=data.get("external_id"),
+            customer_id=data.get("customer_id"),
+            metadata=data.get("metadata"),
+        )
+
+
+# =============================================================================
 # Usage
 # =============================================================================
 

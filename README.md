@@ -257,6 +257,34 @@ print(f"Score: {summary.overall_risk_score}")
 print(f"Full transcript: {summary.transcript}")
 ```
 
+### Document Analysis
+
+Analyze PDF documents page-by-page for safety threats. Text is extracted via the native text layer or OCR, then run through the selected detection endpoints.
+
+> **Pro tier ($99/mo)+ required** · Dynamic credits (pages x endpoints) · `POST /v1/safety/document`
+
+```python
+with open("report.pdf", "rb") as f:
+    result = await client.analyze_document(
+        file=f.read(),
+        filename="report.pdf",
+        endpoints=["unsafe", "grooming", "coercive-control"],
+        age_group="13-15",
+        support_threshold="high",
+    )
+
+print(f"Pages analyzed: {result.pages_analyzed}/{result.total_pages}")
+print(f"Overall risk: {result.overall_severity} ({result.overall_risk_score})")
+print(f"Detected endpoints: {result.detected_endpoints}")
+
+for page in result.flagged_pages:
+    print(f"  Page {page.page_number}: {page.severity} — {page.detected_endpoints}")
+
+# Extraction stats
+summary = result.extraction_summary
+print(f"Text layer: {summary.text_layer_pages}, OCR: {summary.ocr_pages}")
+```
+
 ---
 
 ## Credits Tracking
@@ -278,6 +306,7 @@ print(f"Credits used: {result.credits_used}")  # 1
 | `generate_report()` | 3 | Structured output |
 | `analyze_voice()` | 5 | Transcription + analysis |
 | `analyze_image()` | 3 | Vision + OCR + analysis |
+| `analyze_document()` | Dynamic | pages x endpoints (Pro+) |
 | `verify_age()` | 5 | Age verification (Beta, Pro+) |
 | `verify_identity()` | 10 | Identity verification (Beta, Business+) |
 

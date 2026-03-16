@@ -83,6 +83,7 @@ from tuteliq.models import (
     AnalyseMultiInput,
     AnalyseMultiResult,
     VideoAnalysisResult,
+    DocumentAnalysisResult,
 )
 
 
@@ -1098,6 +1099,68 @@ class Tuteliq:
         files = {"file": (filename, file, "application/octet-stream")}
         data = await self._multipart_request("/api/v1/safety/video", fields, files)
         return VideoAnalysisResult.from_dict(data)
+
+    async def analyze_document(
+        self,
+        file: bytes,
+        filename: str,
+        *,
+        endpoints: Optional[list[str]] = None,
+        file_id: Optional[str] = None,
+        age_group: Optional[str] = None,
+        language: Optional[str] = None,
+        platform: Optional[str] = None,
+        support_threshold: Optional[str] = None,
+        external_id: Optional[str] = None,
+        customer_id: Optional[str] = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> DocumentAnalysisResult:
+        """Analyze a PDF document for safety concerns page by page.
+
+        Extracts text from each page (text layer or OCR) and runs the
+        selected detection endpoints against it.
+
+        Args:
+            file: Raw PDF file bytes.
+            filename: Original filename (e.g. "report.pdf").
+            endpoints: Detection endpoints to run per page. Defaults to
+                       ["unsafe", "coercive-control", "radicalisation"].
+            file_id: Optional file identifier (echoed in response).
+            age_group: Age group context for calibrated analysis.
+            language: Language hint (ISO 639-1).
+            platform: Platform identifier.
+            support_threshold: Minimum severity for crisis helplines
+                               ("low", "medium", "high", "critical").
+            external_id: Your identifier for correlation.
+            customer_id: Customer identifier.
+            metadata: Custom metadata.
+
+        Returns:
+            DocumentAnalysisResult with per-page findings and overall risk.
+        """
+        fields: dict[str, Any] = {
+            "platform": self._resolve_platform(platform),
+        }
+        if endpoints:
+            fields["endpoints"] = json.dumps(endpoints)
+        if file_id:
+            fields["file_id"] = file_id
+        if age_group:
+            fields["age_group"] = age_group
+        if language:
+            fields["language"] = language
+        if support_threshold:
+            fields["support_threshold"] = support_threshold
+        if external_id:
+            fields["external_id"] = external_id
+        if customer_id:
+            fields["customer_id"] = customer_id
+        if metadata:
+            fields["metadata"] = json.dumps(metadata)
+
+        files = {"file": (filename, file, "application/pdf")}
+        data = await self._multipart_request("/api/v1/safety/document", fields, files)
+        return DocumentAnalysisResult.from_dict(data)
 
     # =========================================================================
     # Verification

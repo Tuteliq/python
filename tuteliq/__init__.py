@@ -74,6 +74,13 @@ from tuteliq.models import (
     AnalyseMultiSummary,
     VideoAnalysisResult,
     VideoSafetyFinding,
+    # Document analysis types
+    DOCUMENT_ENDPOINT_NAMES,
+    DocumentExtractionSummary,
+    DocumentPageEndpointResult,
+    DocumentPageResult,
+    DocumentFlaggedPage,
+    DocumentAnalysisResult,
     # Verification types
     VerificationSession,
     VerificationSessionResult,
@@ -136,7 +143,7 @@ from tuteliq.errors import (
     TierAccessError,
 )
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 __all__ = [
     # Client
     "Tuteliq",
@@ -195,6 +202,13 @@ __all__ = [
     "VerificationSessionStatus",
     "VideoAnalysisResult",
     "VideoSafetyFinding",
+    # Document analysis types
+    "DOCUMENT_ENDPOINT_NAMES",
+    "DocumentExtractionSummary",
+    "DocumentPageEndpointResult",
+    "DocumentPageResult",
+    "DocumentFlaggedPage",
+    "DocumentAnalysisResult",
     # Voice/Image types
     "TranscriptionSegment",
     "TranscriptionResult",
