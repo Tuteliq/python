@@ -32,7 +32,9 @@ jobs:
       - name: Audit dependencies
         run: |
           pip install pip-audit
-          pip-audit
+          # The package's own dependencies, resolved in isolation, so the runner's and the audit
+          # tool's own packages are not reported as the SDK's.
+          pip-audit .
 
       - name: Run type checker
         run: mypy tuteliq
