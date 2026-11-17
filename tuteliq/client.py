@@ -2,8 +2,10 @@
 
 import asyncio
 import json
+import warnings
+from collections.abc import Coroutine
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import httpx
 
@@ -13,27 +15,31 @@ from tuteliq.errors import (
     NotFoundError,
     QuotaExceededError,
     RateLimitError,
-    TierAccessError,
-    TuteliqError,
     ServerError,
+    TierAccessError,
     TimeoutError,
+    TuteliqError,
     ValidationError,
 )
+
+if TYPE_CHECKING:
+    from tuteliq.voice_stream import VoiceStreamConfig, VoiceStreamHandlers, VoiceStreamSession
+
 from tuteliq.models import (
     AccountDeletionResult,
     AccountExportResult,
     ActionPlanResult,
+    AnalyseMultiInput,
+    AnalyseMultiResult,
     AnalysisContext,
     AnalyzeEmotionsInput,
     AnalyzeInput,
     AnalyzeResult,
+    Audience,
     AuditAction,
     AuditLogsResult,
-    Audience,
-    BreachNotificationStatus,
-    BreachResult,
     BreachListResult,
-    BreachSeverity,
+    BreachResult,
     BreachStatus,
     BullyingResult,
     ConsentActionResult,
@@ -45,8 +51,9 @@ from tuteliq.models import (
     DeleteWebhookResult,
     DetectBullyingInput,
     DetectGroomingInput,
+    DetectionInput,
+    DetectionResult,
     DetectUnsafeInput,
-    EmotionMessage,
     EmotionsResult,
     GenerateReportInput,
     GetActionPlanInput,
@@ -61,12 +68,14 @@ from tuteliq.models import (
     RectifyDataInput,
     RectifyDataResult,
     RegenerateSecretResult,
+    ReportResult,
     RiskLevel,
     TestWebhookResult,
     UnsafeResult,
     UpdateBreachInput,
     UpdateWebhookInput,
     UpdateWebhookResult,
+    Usage,
     UsageByToolResult,
     UsageHistoryResult,
     UsageMonthlyResult,
@@ -74,16 +83,15 @@ from tuteliq.models import (
     VerificationRetrieveResult,
     VerificationSession,
     VerificationSessionResult,
+    VideoAnalysisResult,
     VoiceAnalysisResult,
     WebhookListResult,
-    ReportResult,
-    Usage,
-    DetectionInput,
-    DetectionResult,
-    AnalyseMultiInput,
-    AnalyseMultiResult,
-    VideoAnalysisResult,
 )
+
+
+def _enum_value(value: Any) -> Any:
+    """The wire value of an enum member, or the value as given."""
+    return value.value if isinstance(value, Enum) else value
 
 
 class Tuteliq:
@@ -183,9 +191,10 @@ class Tuteliq:
         self._client = httpx.AsyncClient(
             base_url=self.BASE_URL,
             timeout=timeout,
+            # No default Content-Type: httpx sets application/json for a JSON body and
+            # multipart/form-data with its boundary for an upload.
             headers={
                 "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
             },
         )
 
@@ -361,11 +370,9 @@ class Tuteliq:
         checks = input_data.include or ["bullying", "unsafe"]
 
         # Run detections in parallel
-        tasks = []
-        check_types = []
+        tasks: list[Coroutine[Any, Any, Union[BullyingResult, UnsafeResult]]] = []
 
         if "bullying" in checks:
-            check_types.append("bullying")
             tasks.append(
                 self.detect_bullying(
                     input_data.content,
@@ -376,7 +383,6 @@ class Tuteliq:
             )
 
         if "unsafe" in checks:
-            check_types.append("unsafe")
             tasks.append(
                 self.detect_unsafe(
                     input_data.content,
@@ -393,13 +399,12 @@ class Tuteliq:
         unsafe_result: Optional[UnsafeResult] = None
         max_risk_score = 0.0
 
-        for i, result in enumerate(results):
-            if check_types[i] == "bullying":
-                bullying_result = result  # type: ignore
-                max_risk_score = max(max_risk_score, bullying_result.risk_score)
-            elif check_types[i] == "unsafe":
-                unsafe_result = result  # type: ignore
-                max_risk_score = max(max_risk_score, unsafe_result.risk_score)
+        for result in results:
+            if isinstance(result, BullyingResult):
+                bullying_result = result
+            else:
+                unsafe_result = result
+            max_risk_score = max(max_risk_score, result.risk_score)
 
         # Determine risk level
         if max_risk_score >= 0.9:
@@ -603,12 +608,14 @@ class Tuteliq:
             ConsentActionResult with the created consent record.
         """
         data = await self._request("POST", "/api/v1/account/consent", {
-            "consent_type": input.consent_type.value if isinstance(input.consent_type, ConsentType) else input.consent_type,
+            "consent_type": _enum_value(input.consent_type),
             "version": input.version,
         })
         return ConsentActionResult.from_dict(data)
 
-    async def get_consent_status(self, consent_type: Optional[ConsentType] = None) -> ConsentStatusResult:
+    async def get_consent_status(
+        self, consent_type: Optional[ConsentType] = None
+    ) -> ConsentStatusResult:
         """Get current consent status (GDPR Article 7).
 
         Args:
@@ -619,7 +626,7 @@ class Tuteliq:
         """
         path = "/api/v1/account/consent"
         if consent_type:
-            type_val = consent_type.value if isinstance(consent_type, ConsentType) else consent_type
+            type_val = _enum_value(consent_type)
             path += f"?type={type_val}"
         data = await self._request("GET", path)
         return ConsentStatusResult.from_dict(data)
@@ -633,7 +640,7 @@ class Tuteliq:
         Returns:
             ConsentActionResult with the withdrawal record.
         """
-        type_val = consent_type.value if isinstance(consent_type, ConsentType) else consent_type
+        type_val = _enum_value(consent_type)
         data = await self._request("DELETE", f"/api/v1/account/consent/{type_val}")
         return ConsentActionResult.from_dict(data)
 
@@ -669,7 +676,7 @@ class Tuteliq:
         """
         params = []
         if action:
-            action_val = action.value if isinstance(action, AuditAction) else action
+            action_val = _enum_value(action)
             params.append(f"action={action_val}")
         if limit:
             params.append(f"limit={limit}")
@@ -693,7 +700,7 @@ class Tuteliq:
         data = await self._request("POST", "/api/v1/admin/breach", {
             "title": input.title,
             "description": input.description,
-            "severity": input.severity.value if isinstance(input.severity, BreachSeverity) else input.severity,
+            "severity": _enum_value(input.severity),
             "affected_user_ids": input.affected_user_ids,
             "data_categories": input.data_categories,
             "reported_by": input.reported_by,
@@ -716,7 +723,7 @@ class Tuteliq:
         """
         params = []
         if status:
-            status_val = status.value if isinstance(status, BreachStatus) else status
+            status_val = _enum_value(status)
             params.append(f"status={status_val}")
         if limit:
             params.append(f"limit={limit}")
@@ -751,10 +758,10 @@ class Tuteliq:
             BreachResult with the updated breach record.
         """
         body: dict[str, Any] = {
-            "status": input.status.value if isinstance(input.status, BreachStatus) else input.status,
+            "status": _enum_value(input.status),
         }
         if input.notification_status:
-            body["notification_status"] = input.notification_status.value if isinstance(input.notification_status, BreachNotificationStatus) else input.notification_status
+            body["notification_status"] = _enum_value(input.notification_status)
         if input.notes:
             body["notes"] = input.notes
         data = await self._request("PATCH", f"/api/v1/admin/breach/{breach_id}", body)
@@ -890,7 +897,9 @@ class Tuteliq:
         input_data = self._resolve_detection_input(
             content_or_input, context, include_evidence, external_id, customer_id, metadata
         )
-        data = await self._request("POST", "/api/v1/fraud/social-engineering", self._build_detection_body(input_data))
+        data = await self._request(
+            "POST", "/api/v1/fraud/social-engineering", self._build_detection_body(input_data)
+        )
         return DetectionResult.from_dict(data)
 
     async def detect_app_fraud(
@@ -907,7 +916,9 @@ class Tuteliq:
         input_data = self._resolve_detection_input(
             content_or_input, context, include_evidence, external_id, customer_id, metadata
         )
-        data = await self._request("POST", "/api/v1/fraud/app-fraud", self._build_detection_body(input_data))
+        data = await self._request(
+            "POST", "/api/v1/fraud/app-fraud", self._build_detection_body(input_data)
+        )
         return DetectionResult.from_dict(data)
 
     async def detect_romance_scam(
@@ -924,7 +935,9 @@ class Tuteliq:
         input_data = self._resolve_detection_input(
             content_or_input, context, include_evidence, external_id, customer_id, metadata
         )
-        data = await self._request("POST", "/api/v1/fraud/romance-scam", self._build_detection_body(input_data))
+        data = await self._request(
+            "POST", "/api/v1/fraud/romance-scam", self._build_detection_body(input_data)
+        )
         return DetectionResult.from_dict(data)
 
     async def detect_mule_recruitment(
@@ -941,7 +954,9 @@ class Tuteliq:
         input_data = self._resolve_detection_input(
             content_or_input, context, include_evidence, external_id, customer_id, metadata
         )
-        data = await self._request("POST", "/api/v1/fraud/mule-recruitment", self._build_detection_body(input_data))
+        data = await self._request(
+            "POST", "/api/v1/fraud/mule-recruitment", self._build_detection_body(input_data)
+        )
         return DetectionResult.from_dict(data)
 
     # =========================================================================
@@ -962,7 +977,9 @@ class Tuteliq:
         input_data = self._resolve_detection_input(
             content_or_input, context, include_evidence, external_id, customer_id, metadata
         )
-        data = await self._request("POST", "/api/v1/safety/gambling-harm", self._build_detection_body(input_data))
+        data = await self._request(
+            "POST", "/api/v1/safety/gambling-harm", self._build_detection_body(input_data)
+        )
         return DetectionResult.from_dict(data)
 
     async def detect_coercive_control(
@@ -979,7 +996,9 @@ class Tuteliq:
         input_data = self._resolve_detection_input(
             content_or_input, context, include_evidence, external_id, customer_id, metadata
         )
-        data = await self._request("POST", "/api/v1/safety/coercive-control", self._build_detection_body(input_data))
+        data = await self._request(
+            "POST", "/api/v1/safety/coercive-control", self._build_detection_body(input_data)
+        )
         return DetectionResult.from_dict(data)
 
     async def detect_vulnerability_exploitation(
@@ -996,7 +1015,11 @@ class Tuteliq:
         input_data = self._resolve_detection_input(
             content_or_input, context, include_evidence, external_id, customer_id, metadata
         )
-        data = await self._request("POST", "/api/v1/safety/vulnerability-exploitation", self._build_detection_body(input_data))
+        data = await self._request(
+            "POST",
+            "/api/v1/safety/vulnerability-exploitation",
+            self._build_detection_body(input_data),
+        )
         return DetectionResult.from_dict(data)
 
     async def detect_radicalisation(
@@ -1013,7 +1036,9 @@ class Tuteliq:
         input_data = self._resolve_detection_input(
             content_or_input, context, include_evidence, external_id, customer_id, metadata
         )
-        data = await self._request("POST", "/api/v1/safety/radicalisation", self._build_detection_body(input_data))
+        data = await self._request(
+            "POST", "/api/v1/safety/radicalisation", self._build_detection_body(input_data)
+        )
         return DetectionResult.from_dict(data)
 
     # =========================================================================
@@ -1115,20 +1140,29 @@ class Tuteliq:
         Returns:
             VerificationSession with session_id, url, expires_at, and mode.
         """
-        if not input_data.mode or input_data.mode not in (VerificationMode.AGE, VerificationMode.IDENTITY):
+        if input_data.mode not in (VerificationMode.AGE, VerificationMode.IDENTITY):
             raise ValueError('Verification mode must be "age" or "identity"')
 
         body: dict[str, Any] = {"mode": input_data.mode.value}
         if input_data.document_type:
-            body["document_type"] = input_data.document_type.value if isinstance(input_data.document_type, Enum) else input_data.document_type
-        if input_data.redirect_url:
-            body["redirect_url"] = input_data.redirect_url
-        if input_data.external_id:
-            body["external_id"] = input_data.external_id
-        if input_data.customer_id:
-            body["customer_id"] = input_data.customer_id
-        if input_data.metadata:
-            body["metadata"] = input_data.metadata
+            body["document_type"] = _enum_value(input_data.document_type)
+        if input_data.chip_policy:
+            body["chip_policy"] = _enum_value(input_data.chip_policy)
+        if input_data.auto_capture is not None:
+            body["auto_capture"] = input_data.auto_capture
+        ignored = [
+            name
+            for name in ("redirect_url", "external_id", "customer_id", "metadata")
+            if getattr(input_data, name)
+        ]
+        if ignored:
+            warnings.warn(
+                f"{', '.join(ignored)} on CreateVerificationSessionInput is not sent: "
+                "the API ignores it. "
+                "Keep the link between a session and your user by the session_id.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         data = await self._request("POST", "/api/v1/verify/session", body)
         return VerificationSession.from_dict(data)
@@ -1462,7 +1496,6 @@ class Tuteliq:
                 path,
                 data=fields,
                 files=files,
-                headers={"Content-Type": None},  # Let httpx set multipart boundary
             )
         except httpx.TimeoutException:
             raise TimeoutError(f"Request timed out after {self._timeout} seconds")
@@ -1488,7 +1521,8 @@ class Tuteliq:
         if not response.is_success:
             self._handle_error_response(response)
 
-        return response.json()
+        data: dict[str, Any] = response.json()
+        return data
 
     async def _perform_request(
         self,
@@ -1525,7 +1559,8 @@ class Tuteliq:
         if not response.is_success:
             self._handle_error_response(response)
 
-        return response.json()
+        data: dict[str, Any] = response.json()
+        return data
 
     def _handle_error_response(self, response: httpx.Response) -> None:
         """Handle error responses from the API."""

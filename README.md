@@ -33,7 +33,7 @@ pip install tuteliq
 
 ### Requirements
 
-- Python 3.9+
+- Python 3.10+
 
 ---
 
@@ -193,40 +193,32 @@ print(f"Risk: {report.risk_level}")
 print(f"Next Steps: {report.recommended_next_steps}")
 ```
 
-### Age Verification (Beta)
+### Verification
 
-> **Pro tier ($99/mo)+ required** · 5 credits per request · `POST /v1/verification/age`
-
-```python
-result = await client.verify_age(
-    document=open("id-front.jpg", "rb"),
-    selfie=open("selfie.jpg", "rb"),
-    method="combined",  # "document" | "biometric" | "combined"
-)
-
-print(result.verified)        # True
-print(result.estimated_age)   # 15
-print(result.age_range)       # "13-15"
-print(result.is_minor)        # True
-print(result.confidence)      # 0.97
-```
-
-### Identity Verification (Beta)
-
-> **Business tier ($349/mo)+ required** · 10 credits per request · `POST /v1/verification/identity`
+Session-based age and identity verification. You create a session on your server, the user completes document capture, liveness and selfie in Tuteliq's hosted flow, and you read the result. See [Verification](https://docs.tuteliq.ai/verification) for plans and credits.
 
 ```python
-result = await client.verify_identity(
-    document=open("id-front.jpg", "rb"),
-    selfie=open("selfie.jpg", "rb"),
-)
+from tuteliq import ChipPolicy, CreateVerificationSessionInput, DocumentType, VerificationMode, VerificationSessionStatus
 
-print(result.verified)                # True
-print(result.match_score)             # 0.98
-print(result.liveness_passed)         # True
-print(result.document_authenticated)  # True
-print(result.is_minor)               # False
+session = await client.create_verification_session(
+    CreateVerificationSessionInput(
+        mode=VerificationMode.AGE,              # AGE or IDENTITY
+        document_type=DocumentType.PASSPORT,    # optional: PASSPORT, NATIONAL_ID or DRIVERS_LICENSE
+        chip_policy=ChipPolicy.OPTIONAL,        # optional: OPTIONAL, REQUIRED or INSTEAD_OF_PHOTO
+        auto_capture=True,                      # optional: False makes the user tap Capture
+    )
+)
+print(session.url)          # open this for the user; it carries a single-use token
+print(session.expires_at)   # epoch milliseconds
+
+# Later: poll until the session is completed or failed (or use webhooks)
+status = await client.get_verification_session(session.session_id)
+if status.status == VerificationSessionStatus.COMPLETED and status.result:
+    print(status.result["status"])                    # "verified", "failed" or "needs_review"
+    print(status.result["face_match"]["match_score"]) # 0.94: 0.5 at the match decision
 ```
+
+The extracted document fields are only included on the **first** poll after completion. `face_match.match_score` (0 to 1) reads 0.5 at the match decision, high for a clear match and near 0 for different people; prefer it to `confidence`, which reads only about 0.55 on a clear match. Keep the link between a session and your own user by the `session_id`: the API has no `external_id` for sessions.
 
 ### Voice Streaming
 
@@ -283,8 +275,7 @@ print(f"Credits used: {result.credits_used}")  # 1
 | `generate_report()` | 3 | Structured output |
 | `analyze_voice()` | 5 | Transcription + analysis |
 | `analyze_image()` | 3 | Vision + OCR + analysis |
-| `verify_age()` | 5 | Age verification (Beta, Pro+) |
-| `verify_identity()` | 10 | Identity verification (Beta, Business+) |
+| `create_verification_session()` | see docs | Charged when the session completes |
 
 ---
 
@@ -452,11 +443,11 @@ Enable `PII_REDACTION_ENABLED=true` on your Tuteliq API to automatically strip e
 
 ## Supported Languages
 
-Tuteliq supports **27 languages** with automatic detection — no configuration required.
+Tuteliq supports **32 languages** with automatic detection, no configuration required.
 
-**English** (stable) and **26 beta languages**: Spanish, Portuguese, Ukrainian, Swedish, Norwegian, Danish, Finnish, German, French, Dutch, Polish, Italian, Turkish, Romanian, Greek, Czech, Hungarian, Bulgarian, Croatian, Slovak, Lithuanian, Latvian, Estonian, Slovenian, Maltese, and Irish.
+**English** (stable) and **31 beta languages**: Spanish, Portuguese, Ukrainian, Swedish, Norwegian, Danish, Finnish, German, French, Dutch, Polish, Italian, Turkish, Romanian, Greek, Czech, Hungarian, Bulgarian, Croatian, Slovak, Lithuanian, Latvian, Estonian, Slovenian, Maltese, Irish, Chinese, Japanese, Korean, Arabic and Russian.
 
-All 24 EU official languages + Ukrainian, Norwegian, and Turkish. Each language includes culture-specific safety guidelines covering local slang, grooming patterns, self-harm coded vocabulary, and filter evasion techniques.
+All 24 EU official languages, plus Ukrainian, Norwegian, Turkish, Chinese, Japanese, Korean, Arabic and Russian. Each language includes culture-specific safety guidelines covering local slang, grooming patterns, self-harm coded vocabulary, and filter evasion techniques.
 
 See the [Language Support docs](https://docs.tuteliq.ai/languages) for details.
 
