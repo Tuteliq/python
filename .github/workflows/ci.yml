@@ -8,7 +8,8 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest (26.04) has no Python 3.9, which the package still supports.
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -24,7 +25,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          # setuptools too: the runner's preinstalled copy has known advisories, which pip-audit reports.
+          python -m pip install --upgrade pip setuptools
           pip install -e ".[dev]"
 
       - name: Audit dependencies
