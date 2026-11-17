@@ -1,9 +1,8 @@
 """Data models for Tuteliq SDK."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
-
 
 # =============================================================================
 # Enums
@@ -123,8 +122,19 @@ class DocumentType(str, Enum):
     """Document type hint for verification sessions."""
 
     PASSPORT = "passport"
-    ID_CARD = "id_card"
+    NATIONAL_ID = "national_id"
     DRIVERS_LICENSE = "drivers_license"
+    # The old name for a national ID card, kept so existing code keeps working.
+    # It used to send "id_card", which the API rejects.
+    ID_CARD = "national_id"
+
+
+class ChipPolicy(str, Enum):
+    """How a passport or ID card chip read counts as document evidence in a verification session."""
+
+    OPTIONAL = "optional"  # the document photo is required and a chip read adds to it
+    REQUIRED = "required"  # the photo and a chip read that proves itself genuine
+    INSTEAD_OF_PHOTO = "instead_of_photo"  # a genuine chip read replaces the photo
 
 
 class VerificationStatus(str, Enum):
@@ -143,6 +153,9 @@ class VerificationSessionStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     EXPIRED = "expired"
+    # Waiting for the user to add a document photo before the session can finish. Not final.
+    DOCUMENT_REQUIRED = "document_required"
+    # Deprecated: the API never returns this. A cancelled session reads as expired.
     CANCELLED = "cancelled"
 
 
@@ -268,7 +281,7 @@ class GroomingResult:
     rationale: str
     risk_score: float
     recommended_action: str
-    message_analysis: Optional[list[MessageAnalysis]] = None
+    message_analysis: Optional[list["MessageAnalysis"]] = None
     language: Optional[str] = None
     language_status: Optional[str] = None
     credits_used: Optional[int] = None
@@ -730,7 +743,7 @@ class AuditLogsResult:
     def from_dict(cls, data: dict[str, Any]) -> "AuditLogsResult":
         """Create from API response dictionary."""
         return cls(
-            audit_logs=[AuditLogEntry.from_dict(l) for l in data["audit_logs"]],
+            audit_logs=[AuditLogEntry.from_dict(entry) for entry in data["audit_logs"]],
         )
 
 
@@ -1302,7 +1315,7 @@ class DetectionResult:
     language_status: str
     evidence: Optional[list[DetectionEvidence]] = None
     age_calibration: Optional[AgeCalibration] = None
-    message_analysis: Optional[list[MessageAnalysis]] = None
+    message_analysis: Optional[list["MessageAnalysis"]] = None
     credits_used: Optional[int] = None
     processing_time_ms: Optional[float] = None
     external_id: Optional[str] = None
@@ -1570,6 +1583,10 @@ class CreateVerificationSessionInput:
 
     mode: VerificationMode
     document_type: Optional[DocumentType] = None
+    chip_policy: Optional[ChipPolicy] = None
+    auto_capture: Optional[bool] = None
+    # Deprecated: the API ignores these, so they are not sent. Keep the link between a
+    # session and your own user on your side, by the session_id.
     redirect_url: Optional[str] = None
     external_id: Optional[str] = None
     customer_id: Optional[str] = None
@@ -1582,17 +1599,22 @@ class VerificationSession:
 
     session_id: str
     url: str
-    expires_at: str
+    expires_at: int  # Unix epoch milliseconds
     mode: VerificationMode
+    chip_policy: Optional[ChipPolicy] = None
+    auto_capture: Optional[bool] = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "VerificationSession":
         """Create from API response dictionary."""
+        chip_policy = data.get("chip_policy")
         return cls(
             session_id=data["session_id"],
             url=data["mobile_url"],
             expires_at=data["expires_at"],
             mode=VerificationMode(data["mode"]),
+            chip_policy=ChipPolicy(chip_policy) if chip_policy else None,
+            auto_capture=data.get("auto_capture"),
         )
 
 
@@ -1601,16 +1623,22 @@ class FaceMatchResult:
     """Face comparison results."""
 
     matched: bool
-    distance: float
+    # Not in every result: the age and session results leave it out.
+    distance: Optional[float]
+    # 1 minus the distance; a clear match reads only about 0.55, so prefer match_score.
     confidence: float
+    # How strongly the faces match, 0 to 1: 0.5 at the match decision, high for a clear
+    # match, near 0 for different people. None from an API version that does not send it.
+    match_score: Optional[float] = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "FaceMatchResult":
         """Create from API response dictionary."""
         return cls(
             matched=data["matched"],
-            distance=data["distance"],
+            distance=data.get("distance"),
             confidence=data["confidence"],
+            match_score=data.get("match_score"),
         )
 
 

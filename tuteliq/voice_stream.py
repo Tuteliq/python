@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 VOICE_STREAM_URL = "wss://api.tuteliq.ai/voice/stream"
@@ -245,11 +245,11 @@ class VoiceStreamSession:
                         self._handlers.on_alert(VoiceAlertEvent.from_dict(data))
 
                 elif event_type == "session_summary":
-                    event = VoiceSessionSummaryEvent.from_dict(data)
+                    summary = VoiceSessionSummaryEvent.from_dict(data)
                     if self._handlers.on_session_summary:
-                        self._handlers.on_session_summary(event)
+                        self._handlers.on_session_summary(summary)
                     if self._summary_future and not self._summary_future.done():
-                        self._summary_future.set_result(event)
+                        self._summary_future.set_result(summary)
 
                 elif event_type == "config_updated":
                     if self._handlers.on_config_updated:

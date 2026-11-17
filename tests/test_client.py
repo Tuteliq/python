@@ -1,31 +1,32 @@
 """Tests for Tuteliq client."""
 
 import pytest
+
 from tuteliq import (
-    Tuteliq,
-    Severity,
-    GroomingRisk,
-    RiskLevel,
-    EmotionTrend,
-    Audience,
-    MessageRole,
+    AgeVerificationResult,
     AnalysisContext,
+    Audience,
+    CreateVerificationSessionInput,
     DetectBullyingInput,
     DetectGroomingInput,
-    GroomingMessage,
-    VerificationMode,
     DocumentType,
-    VerificationStatus,
-    VerificationSessionStatus,
-    CreateVerificationSessionInput,
+    EmotionTrend,
+    FaceMatchResult,
+    GroomingMessage,
+    GroomingRisk,
+    IdentityRetrieveResult,
+    IdentityVerificationResult,
+    LivenessResult,
+    MessageRole,
+    RiskLevel,
+    Severity,
+    Tuteliq,
+    VerificationMode,
+    VerificationRetrieveResult,
     VerificationSession,
     VerificationSessionResult,
-    FaceMatchResult,
-    LivenessResult,
-    AgeVerificationResult,
-    IdentityVerificationResult,
-    VerificationRetrieveResult,
-    IdentityRetrieveResult,
+    VerificationSessionStatus,
+    VerificationStatus,
 )
 
 
@@ -165,8 +166,10 @@ class TestVerificationEnums:
     def test_document_type_values(self) -> None:
         """Test DocumentType enum values."""
         assert DocumentType.PASSPORT.value == "passport"
-        assert DocumentType.ID_CARD.value == "id_card"
+        assert DocumentType.NATIONAL_ID.value == "national_id"
         assert DocumentType.DRIVERS_LICENSE.value == "drivers_license"
+        # The old name for a national ID card now sends the value the API accepts.
+        assert DocumentType.ID_CARD is DocumentType.NATIONAL_ID
 
     def test_verification_status_values(self) -> None:
         """Test VerificationStatus enum values."""
