@@ -371,10 +371,8 @@ class Tuteliq:
 
         # Run detections in parallel
         tasks: list[Coroutine[Any, Any, Union[BullyingResult, UnsafeResult]]] = []
-        check_types = []
 
         if "bullying" in checks:
-            check_types.append("bullying")
             tasks.append(
                 self.detect_bullying(
                     input_data.content,
@@ -385,7 +383,6 @@ class Tuteliq:
             )
 
         if "unsafe" in checks:
-            check_types.append("unsafe")
             tasks.append(
                 self.detect_unsafe(
                     input_data.content,
