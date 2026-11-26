@@ -8,10 +8,12 @@ import httpx
 import pytest
 
 from tuteliq import (
+    ActionPlanResult,
     ChipPolicy,
     CreateVerificationSessionInput,
     DocumentType,
     FaceMatchResult,
+    GetActionPlanInput,
     Tuteliq,
     VerificationMode,
     VerificationSession,
@@ -144,3 +146,29 @@ class TestSessionPoll:
         client, _ = client_with(lambda r: httpx.Response(200, json=polled))
         result = await client.get_verification_session("sess_example_1")
         assert result.status == VerificationSessionStatus.DOCUMENT_REQUIRED
+
+
+PLAN = {"audience": "parent", "steps": ["Stay calm."], "tone": "supportive"}
+
+
+class TestActionPlan:
+    async def body_for(self, input_data: GetActionPlanInput) -> dict[str, Any]:
+        client, sent = client_with(lambda r: httpx.Response(200, json=PLAN))
+        await client.get_action_plan(input_data)
+        body: dict[str, Any] = json.loads(sent[0].content)
+        return body
+
+    async def test_sends_the_country(self) -> None:
+        body = await self.body_for(GetActionPlanInput(situation="A worry", country="SE"))
+        assert body["country"] == "SE"
+
+    async def test_leaves_out_the_country_when_not_set(self) -> None:
+        body = await self.body_for(GetActionPlanInput(situation="A worry"))
+        assert "country" not in body
+
+    def test_reads_general_guidance(self) -> None:
+        result = ActionPlanResult.from_dict({**PLAN, "general_guidance": True})
+        assert result.general_guidance is True
+
+    def test_a_tailored_plan_is_not_general_guidance(self) -> None:
+        assert ActionPlanResult.from_dict(PLAN).general_guidance is False
