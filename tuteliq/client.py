@@ -530,6 +530,8 @@ class Tuteliq:
             body["child_age"] = input_data.child_age
         if input_data.severity:
             body["severity"] = input_data.severity.value
+        if input_data.country:
+            body["country"] = input_data.country
         if input_data.external_id:
             body["external_id"] = input_data.external_id
         if input_data.metadata:

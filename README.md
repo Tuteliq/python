@@ -166,12 +166,15 @@ plan = await client.get_action_plan(
         child_age=12,
         audience=Audience.CHILD,
         severity=Severity.MEDIUM,
+        country="SE",  # optional, ISO 3166-1 alpha-2
     )
 )
 
 print(f"Steps: {plan.steps}")
 print(f"Tone: {plan.tone}")
 ```
+
+`country` is the family's country, so the plan names that country's helplines and emergency number. It defaults to the account's country; with neither, the plan names the kind of service to contact. `plan.general_guidance` is `True` when the plan is general guidance for any harm, given because a plan tailored to the situation could not be written.
 
 ### Incident Report
 

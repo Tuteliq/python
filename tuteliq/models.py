@@ -482,6 +482,9 @@ class GetActionPlanInput:
     severity: Optional[Severity] = None
     external_id: Optional[str] = None
     metadata: Optional[dict[str, Any]] = None
+    # The family's country (ISO 3166-1 alpha-2, e.g. "SE"), so the plan names its helplines and
+    # emergency number. Defaults to the account's country.
+    country: Optional[str] = None
 
 
 @dataclass
@@ -495,6 +498,9 @@ class ActionPlanResult:
     credits_used: Optional[int] = None
     external_id: Optional[str] = None
     metadata: Optional[dict[str, Any]] = None
+    # True when the plan is general guidance for any harm, given because a plan tailored to the
+    # situation could not be written.
+    general_guidance: bool = False
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ActionPlanResult":
@@ -507,6 +513,7 @@ class ActionPlanResult:
             credits_used=data.get("credits_used"),
             external_id=data.get("external_id"),
             metadata=data.get("metadata"),
+            general_guidance=data.get("general_guidance", False),
         )
 
 
